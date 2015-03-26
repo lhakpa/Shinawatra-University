@@ -1,0 +1,177 @@
+<?php include('config.php');
+
+if(isset($_SESSION['oa_temp_userid']) && $_SESSION['oa_temp_userid']!="")
+{
+	$_SESSION['oa_temp_userid']="";
+	unset($_SESSION['oa_temp_userid']);
+}
+
+if(isset($_SESSION['oa_userid']) && $_SESSION['oa_userid']!="")
+{
+	header("location:profile.php");
+}
+
+$errorMessage = "";
+if(isset($_POST) && !empty($_POST)){
+
+	$myemail = trim($_POST['email']);
+	$mypassword = trim($_POST['password']);
+	
+	if(empty($myemail))
+	{
+		$error = true;
+		$erro_message .="<br/>Username is required";	
+	}	
+	if(empty($mypassword))
+	{
+		$error = true;
+		$erro_message .="<br/>Password is required";	
+	}
+	
+	if(!$error){
+			$myemail = stripslashes($myemail);
+			$mypassword = stripslashes($mypassword);
+			$myusername = mysql_real_escape_string($myusername);
+			$mypassword = mysql_real_escape_string($mypassword);
+			
+			$sql="SELECT *,CONCAT(first_name, ' ', last_name) as name FROM ".USER." WHERE (username='$myemail' or email='$myemail') and password='$mypassword'";
+			
+			$result=mysql_query($sql);
+			$row = mysql_fetch_assoc($result);
+			$count=mysql_num_rows($result);
+			 
+			if($count==1){
+				
+				if($row['status']=='0'){
+				
+					if(!empty($row['activation_key'])){
+					
+						$display_text= "<div class=\"alert alert-danger alert-dismissable TextLeft\">";
+						$display_text.= "<button type=\"button\" class=\"close\" data-dismiss=\"alert\" aria-hidden=\"true\">&times;</button>";
+						$display_text.= "Your account is not activate yet.<br/>Please follow link you received on your email address to activate it.</div>";
+						$_SESSION['Message'] = "";					
+						$_SESSION['Message'] = $display_text;						
+						header("Location: http://" . $_SERVER['HTTP_HOST'].dirname($_SERVER['PHP_SELF']). "/" . "index.php");
+						exit;
+						
+					}else{
+					
+						$display_text= "<div class=\"alert alert-danger alert-dismissable TextLeft\">";
+						$display_text.= "<button type=\"button\" class=\"close\" data-dismiss=\"alert\" aria-hidden=\"true\">&times;</button>";
+						$display_text.= "Your account is deactivated.<br/>Please contact to site admin.</div>";
+						$_SESSION['Message'] = "";					
+						$_SESSION['Message'] = $display_text;						
+						header("Location: http://" . $_SERVER['HTTP_HOST'].dirname($_SERVER['PHP_SELF']). "/" . "index.php");
+						exit;
+					}
+
+				}
+				
+				//Set the user variables to session
+				$_SESSION['oa_userid'] = $row['id'];
+				$_SESSION['oa_user_type'] = $row['user_type'];
+				$_SESSION['oa_email'] = $row['email'];
+				$_SESSION['oa_name'] = $row['name'];
+				$_SESSION['oa_username'] = $row['username'];
+				if($row['user_type']=='lecturer')
+					$_SESSION['oa_faculty'] = $row['faculty'];
+				
+				
+				mysql_query("UPDATE ".USER." SET last_login=now() where id='".$row['id']."' " );
+				
+				if($row['application_sumitted']=='0' && $row['user_type']=="user")
+				{
+					header("location:semester-program.php");
+					exit;
+				}
+								
+				if($row['user_type']=="lecturer")
+					header("location:applicants.php");
+				else
+					header("location:profile.php");
+			}
+			else {
+				$erro_message = 'Invalid Login Details';
+			}
+	}
+}
+?>
+
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title><?php echo SITE_NAME;?> : Login</title>
+<link href="css/bootstrap.css" rel="stylesheet" type="text/css" />
+<link href="css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+<link href="css/commen.css" rel="stylesheet" type="text/css" />
+<link href="css/font-awesome.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<!--Start Header-->
+<?php include("header.php");?>
+<!--End Header--> 
+
+<!--Start section-->
+<section>
+  <div class="container contArea text-center">
+  <h1>Welcome to online admission system</h1>
+    <div class="loginBox">
+	<?php if (!empty($erro_message)){?>
+			<table width="100%" border="0" cellpadding="0" cellspacing="0">
+			<tr>
+			  <td><table width="100%" border="0" cellpadding="0" cellspacing="0">
+				  <tr>
+					<td>
+						<div class="alert alert-danger alert-dismissable TextLeft">
+							<button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+							<?php print $erro_message;?>
+						</div>
+					</td>
+				  </tr>
+				</table></td>
+			</tr>
+			</table>
+		<?php }?> 
+		<?php include_once("message.php");?> 
+      <div class="col-lg-6">
+    <h1><span class="left">Login</span></h1>
+    <div class="clear"></div><br>
+      <form name="login" action="" method="post" autocomplete=off>
+        <li>
+          <input type="text" name="email" placeholder="Username" class="text" value="<?php echo $_POST['email'];?>">
+        </li>
+        <li>
+          <input type="password" name="password" placeholder="Password">
+        </li>
+        <div class="form-group text-center margin-top"> 
+          <button type="submit" class="btn btn-primary ">Submit</button> <span class="forgot_pass">
+		  <a href="forgot_password.php">Forgot your password?</a></span>
+          </div>
+          <div class="clear"></div>
+      </form></div>
+     	  
+	  <div class="col-lg-1 or">
+      <img src="img/or.png">
+      </div>
+      <div class="col-lg-5 btn_bottom_registr">
+      <form>
+        <div class="form-group text-center"> <a href="<?php echo SITE_URL?>register.php">
+          <button type="button" class="btn btn-primary ">New Registration</button>
+          </a> </div>
+        </form>
+        </div>
+        <div class="clear"></div>
+      
+    </div>
+
+  </div>      
+</section>
+<!--End Banner--> 
+
+<!--Start Footer-->
+<?php include("footer.php");?>
+<!--End Footer-->
+
+</body>
+</html>
